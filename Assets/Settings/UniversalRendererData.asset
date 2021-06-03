@@ -17,6 +17,8 @@ MonoBehaviour:
     IsEnabled: 1
     WhenToInsert: 550
     MaterialToBlit: {fileID: 2100000, guid: 85be4b2653820b249ab2578fcccb07dd, type: 2}
+    scatteringStrength: 1.32
+    waveLengths: {x: 700, y: 530, z: 460}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

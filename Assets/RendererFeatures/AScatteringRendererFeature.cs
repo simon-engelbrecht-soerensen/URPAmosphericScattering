@@ -14,6 +14,8 @@ namespace RendererFeatures
             public bool IsEnabled = true;
             public RenderPassEvent WhenToInsert = RenderPassEvent.AfterRendering;
             public Material MaterialToBlit;
+            public float scatteringStrength = 20;
+            public Vector3 waveLengths = new Vector3 (700, 530, 460);
         }
 
         // MUST be named "settings" (lowercase) to be shown in the Render Features inspector
@@ -28,10 +30,13 @@ namespace RendererFeatures
             renderPass = new AScatteringRenderPass(
                 "Atmospheric Scattering",
                 settings.WhenToInsert,
-                settings.MaterialToBlit);
+                settings.MaterialToBlit,
+                settings.scatteringStrength,
+                settings.waveLengths);
             // Configures where the render pass should be injected.
         }
 
+        
         // Here you can inject one or multiple render passes in the renderer.
         // This method is called when setting up the renderer once per-camera.
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)

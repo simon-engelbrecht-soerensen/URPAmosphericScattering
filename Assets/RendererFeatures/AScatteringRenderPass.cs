@@ -11,11 +11,16 @@ namespace RendererFeatures
         Material materialToBlit;
         RenderTargetIdentifier cameraColorTargetIdent;
         RenderTargetHandle tempTexture;
-        public AScatteringRenderPass(string profilerTag, RenderPassEvent renderPassEvent, Material materialToBlit)
+        float scatteringStrength;
+        private Vector3 wavelengths;
+        
+        public AScatteringRenderPass(string profilerTag, RenderPassEvent renderPassEvent, Material materialToBlit, float scatteringStrength, Vector3 wavelengths)
         {
             this.profilerTag = profilerTag;
             this.renderPassEvent = renderPassEvent;
             this.materialToBlit = materialToBlit;
+            this.scatteringStrength = scatteringStrength;
+            this.wavelengths = wavelengths;
         }
 
         // This isn't part of the ScriptableRenderPass class and is our own addition.
@@ -32,8 +37,13 @@ namespace RendererFeatures
         // The render pipeline will ensure target setup and clearing happens in a performant manner.
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            var light = GameObject.FindObjectOfType<Light>();
-            materialToBlit.SetVector("sunDirection", (light.transform.position - new Vector3(0,0,0)).normalized);
+            // var light = GameObject.FindObjectOfType<Light>();
+            // materialToBlit.SetVector("sunDirection", (light.transform.position - new Vector3(0,0,0)).normalized);
+            
+            float scatterX = Mathf.Pow(400 / wavelengths.x, 4);
+            float scatterY = Mathf.Pow (400 / wavelengths.y, 4);
+            float scatterZ = Mathf.Pow (400 / wavelengths.z, 4);
+            materialToBlit.SetVector ("scatteringCoefficients", new Vector3 (scatterX, scatterY, scatterZ) * scatteringStrength);
         }
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)

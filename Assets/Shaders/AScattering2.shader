@@ -11,6 +11,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
     	_PlanetLocation("Planet Location", Vector) = (0,0,0, 0)
     	_AtmosphereHeight("Atmosphere Height", Range(0,10)) = 1
     	_DepthDistance("Depth Distance", float) = 100
+    	
     }
 
     SubShader
@@ -71,7 +72,8 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             float3 _PlanetLocation;			
 
             float atmosphereScale;
-
+			float4 scatteringCoefficients;
+            
 			float3 sunDirection;
             
             Varyings vert(Attributes IN)
@@ -79,7 +81,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
                 Varyings OUT;
             	VertexPositionInputs positionInputs = GetVertexPositionInputs(IN.positionOS.xyz);
                 OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz);
-                // OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz);
+                // OUT.positionWS = TransformObjectToWorld(IN.positionOS.xyz); 
                 OUT.positionWS = positionInputs.positionWS;
                 OUT.positionOS = IN.positionOS.xyz;
                 // OUT.uv.xy = TRANSFORM_TEX(IN.uv, _BaseMap);
@@ -208,11 +210,12 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 			}
 
 
-			const float3 bR = float3(58e-7, 135e-7, 331e-7); // Rayleigh scattering coefficient
+			const float3 bR = float3(58, 135, 331); // Rayleigh scattering coefficient
+			// const float3 bR = float3(58e-7, 135e-7, 331e-7); // Rayleigh scattering coefficient
 			const float3 bMs = float3(2e-5, 2e-5, 2e-5); // Mie scattering coefficients
 			// const float3 bMe = bMs * 1.1;
-            
-			float4 calcLightTest(float3 rayOrigin, float3 rayDir, float length)
+            // float4 scatteringCoefficients;
+			float3 calcLightTest(float3 rayOrigin, float3 rayDir, float length, float3 originalCol)
             {
 
             	float rayLength = length;
@@ -224,8 +227,8 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             	float Ldot = dot(normalize(rayDir), lightDirection);
             	float4 color = 0;
             	// float4 color = Ldot;
-            	float inScatteredLight = 0;
-            	         	
+            	float3 inScatteredLight = 0;
+            	float viewRayOpticalDepth = 0;         	
             	
 				for(int i = 0; i < _ScatteringPoints; i++)
             	{
@@ -233,15 +236,19 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 					float sunRayLength = raySphere(_PlanetLocation, atmosphereScale, inScatterPoint, sunDir).y;
 					// float sunRayLength = raySphere(0, _AtmosphereHeight, inScatterPoint, localSunDir).y;
 					float rayOpticalDepth = opticalDepth(inScatterPoint, sunDir, sunRayLength);
-					float viewRayOpticalDepth = opticalDepth(inScatterPoint, -rayDir, stepSize * i);
-					// float transmittance = exp(-(rayOpticalDepth));
-					float transmittance = (exp(-(rayOpticalDepth + viewRayOpticalDepth)));
-					// float localDensity = densityAtPoint(inScatterPoint);
+					viewRayOpticalDepth = opticalDepth(inScatterPoint, -rayDir, stepSize * i);
 					float localDensity = densityAtPoint(inScatterPoint);
+					// float localDensity = densitiesRM(inScatterPoint) * length;
+					// float transmittance = exp(-(rayOpticalDepth));
+					// float3 expo = exp(-bR * localDensity.x);
+					float3 transmittance = exp(-(rayOpticalDepth + viewRayOpticalDepth) * scatteringCoefficients);
+					// float3 expo = exp(-bR * localDensity.x - bMe * totalDepthRM.y)
+					// float localDensity = densityAtPoint(inScatterPoint);
+					
 					// float3 dirToLight = inScatterPoint - lightDirection;
 					// float t = dot(Ldot, normalize(dirToLight));
 					// inScatteredLight += localDensity;
-					inScatteredLight += localDensity * transmittance * stepSize;
+					inScatteredLight += localDensity * transmittance;
 					
 					// inScatteredLight +=  transmittance;
 					// inScatteredLight += 1000 * stepSize;
@@ -255,7 +262,9 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 					// inScatteredLight += depth * depth2;
 			
 				}
-            	return inScatteredLight;
+				float originalColTransmittance = exp(-viewRayOpticalDepth);
+				inScatteredLight *= scatteringCoefficients * stepSize;
+            	return originalCol * originalColTransmittance + inScatteredLight ;
             	
             }
 
@@ -319,10 +328,10 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             	{
             		const float epsilon = 0.0001;
             		float3 pointInAtmosphere = origin + rayDir * (distToAtmosphere + epsilon);  
-            		float light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - epsilon * 2);
+            		float3 light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - epsilon * 2, col.rgb);
             		// return float4(pointInAtmosphere, 1);
-            		// return light;
-            		return col * (1- light) + light;
+            		return float4(light, 1);
+            		// return col * (1- light) + light;
             		// return (1-light) + light;
             		// return saturate(1-light) + light;
             	}

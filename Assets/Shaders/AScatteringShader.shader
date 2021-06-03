@@ -481,7 +481,7 @@ Shader "Universal Render Pipeline/Custom/AScattering"
             	float4 col = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
 					
             	sunDir = normalize(_MainLightPosition.xyz);
-				float length = escape(origin, rayDir, Ra);
+				// float length = escape(origin, rayDir, Ra);
             	 
             	// return length;
             	// return dstThough;

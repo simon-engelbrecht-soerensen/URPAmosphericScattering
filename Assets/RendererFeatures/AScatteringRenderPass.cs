@@ -32,7 +32,8 @@ namespace RendererFeatures
         // The render pipeline will ensure target setup and clearing happens in a performant manner.
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            
+            var light = GameObject.FindObjectOfType<Light>();
+            materialToBlit.SetVector("sunDirection", (light.transform.position - new Vector3(0,0,0)).normalized);
         }
 
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
@@ -50,6 +51,7 @@ namespace RendererFeatures
             CommandBuffer cmd = CommandBufferPool.Get(profilerTag);
             cmd.Clear();
 
+            
             // the actual content of our custom render pass!
             // we apply our material while blitting to a temporary texture
             cmd.Blit(cameraColorTargetIdent, tempTexture.Identifier(), materialToBlit, 0);

@@ -7,7 +7,9 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
     	_ScatteringPoints("ScatteringPoints", int) = 10
     	_OpticalDepthPoints("Optical Depth Points", int) = 10
     	_DensityFalloff("Density Falloff", float) = 10
-    	_AtmosphereHeight("Atmosphere Height", float) = 3
+    	_PlanetSize("Planet Size", float) = 3
+    	_PlanetLocation("Planet Location", Vector) = (0,0,0, 0)
+    	_AtmosphereHeight("Atmosphere Height", Range(0,10)) = 1
     	_DepthDistance("Depth Distance", float) = 100
     }
 
@@ -63,9 +65,14 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             int _ScatteringPoints;
             int _OpticalDepthPoints;
             float _DensityFalloff;
+            float _PlanetSize;
             float _AtmosphereHeight;
             float _DepthDistance;			
-        
+            float3 _PlanetLocation;			
+
+            float atmosphereScale;
+
+			float3 sunDirection;
             
             Varyings vert(Attributes IN)
             {
@@ -85,14 +92,16 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
                 return OUT;
             }
             float3 sunDir;
-            float planetSize = 3;
+            // float planetSize = 3;
 			// Calculate densities $\rho$.
 			// Returns vec2(rho_rayleigh, rho_mie)
 			// Note that intro version is more complicated and adds clouds by abusing Mie scattering density. That's why it's a separate function
-			float2 densitiesRM(float3 p) {
-				float h = max(0., length(p - float3(0,- planetSize, 0)) - planetSize); // calculate height from Earth surface
+			float2 densitiesRM(float3 p)
+            {
+				float h = max(0., length(p - _PlanetLocation) - _PlanetSize); // calculate height from Earth surface
 				return float2(exp(-h/8e3), exp(-h/12e2));
 			}
+
             
 			float NormalizedHeighValue(float3 samplePos)
             {
@@ -132,12 +141,13 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             static const float maxFloat = 3.402823466e+38;
             float2 raySphere(float3 sphereCentre, float sphereRadius, float3 rayOrigin, float3 rayDir)
             {
+				// float3 offset = rayOrigin - sphereCentre;
 				float3 offset = rayOrigin - sphereCentre;
 				float a = 1; // Set to dot(rayDir, rayDir) if rayDir might not be normalized
 				float b = 2 * dot(offset, rayDir);
 				float c = dot (offset, offset) - sphereRadius * sphereRadius;
 				float d = b * b - 4 * a * c; // Discriminant from quadratic formula
-
+ 
 				// Number of intersections: 0 when d < 0; 1 when d = 0; 2 when d > 0
 				if (d > 0) {
 					float s = sqrt(d);
@@ -156,12 +166,29 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
              float densityAtPoint(float3 samplePoint)
             {
             	// return densitiesRM(samplePoint).x;
-            	float heightAboveSurface = length(samplePoint - 0) - 300;
-            	float height01 = heightAboveSurface / (_AtmosphereHeight - 300);
-            	float localDensity = exp(-height01 * _DensityFalloff) * (1-height01);
+            	float heightAboveSurface = length(samplePoint - (_PlanetLocation )) - _PlanetSize;
+            	// float height01 = heightAboveSurface / (_AtmosphereHeight - _PlanetSize);
+            	float height01 = (heightAboveSurface / ( atmosphereScale - _PlanetSize) );
+            	// float localDensity = exp(-height01 * _DensityFalloff) * (1-height01);
+            	float localDensity = exp(-height01 * _DensityFalloff) * (1 -height01);
             	return localDensity;
             }
+
             
+  //           float optic( float3 origin, float3 rayDir, float rayLength )
+  //           {
+		// 	float3 s = ( rayDir - origin ) / float( _OpticalDepthPoints );
+		// 	float3 v = origin + s * 0.5;
+		// 	
+		// 	float sum = 0.0;
+		// 	for ( int i = 0; i < _OpticalDepthPoints; i++ ) {
+		// 		sum += densityAtPoint( v);
+		// 		v += s;
+		// 	}
+		// 	sum *= length( s );
+		// 	
+		// 	return sum;
+		// }
             float opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength)
             {
 				float3 densitySamplePoint = rayOrigin;
@@ -170,7 +197,9 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 
 				for (int i = 0; i < _OpticalDepthPoints; i ++)
 				{
+					// float localDensity = densityAtPoint(densitySamplePoint);
 					float localDensity = densityAtPoint(densitySamplePoint);
+					// float localDensity = densitiesRM(densitySamplePoint).y;
 					opticalDepth += localDensity * stepSize;
 					// opticalDepth += localDensity / _OpticalDepthPoints;
 					densitySamplePoint += rayDir * stepSize;
@@ -178,10 +207,17 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				return opticalDepth;
 			}
 
-           
+
+			const float3 bR = float3(58e-7, 135e-7, 331e-7); // Rayleigh scattering coefficient
+			const float3 bMs = float3(2e-5, 2e-5, 2e-5); // Mie scattering coefficients
+			// const float3 bMe = bMs * 1.1;
+            
 			float4 calcLightTest(float3 rayOrigin, float3 rayDir, float length)
             {
+
             	float rayLength = length;
+            	float rayDirLengthened = rayDir * length;
+            	
             	float3 inScatterPoint = rayOrigin;
             	float stepSize = rayLength / (_ScatteringPoints -1);
             	float3 lightDirection = normalize(_MainLightPosition.xyz);
@@ -194,16 +230,20 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				for(int i = 0; i < _ScatteringPoints; i++)
             	{
 					float3 localSunDir = normalize(rayDir - sunDir);
-					float sunRayLength = raySphere(0, planetSize+1, inScatterPoint, sunDir).y;
+					float sunRayLength = raySphere(_PlanetLocation, atmosphereScale, inScatterPoint, sunDir).y;
 					// float sunRayLength = raySphere(0, _AtmosphereHeight, inScatterPoint, localSunDir).y;
 					float rayOpticalDepth = opticalDepth(inScatterPoint, sunDir, sunRayLength);
 					float viewRayOpticalDepth = opticalDepth(inScatterPoint, -rayDir, stepSize * i);
 					// float transmittance = exp(-(rayOpticalDepth));
-					float transmittance = exp(-(rayOpticalDepth + viewRayOpticalDepth));
+					float transmittance = (exp(-(rayOpticalDepth + viewRayOpticalDepth)));
+					// float localDensity = densityAtPoint(inScatterPoint);
 					float localDensity = densityAtPoint(inScatterPoint);
 					// float3 dirToLight = inScatterPoint - lightDirection;
 					// float t = dot(Ldot, normalize(dirToLight));
-					inScatteredLight += localDensity + transmittance * stepSize;
+					// inScatteredLight += localDensity;
+					inScatteredLight += localDensity * transmittance * stepSize;
+					
+					// inScatteredLight +=  transmittance;
 					// inScatteredLight += 1000 * stepSize;
 					// inScatteredLight += stepSize;
 
@@ -224,7 +264,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 			// Used to calculate length at which ray escapes atmosphere
 			float escape(float3 p, float3 d, float R)
             {
-				float3 v = p - float3(0, 3, 0);
+				float3 v = p - float3(0, 0, 0);
 				float b = dot(v, d);
 				float det = b * b - dot(v, v) + R*R;
 				if (det < 0.) return -1.;
@@ -235,6 +275,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             
             half4 frag(Varyings IN) : SV_Target
             {
+            	// sunDir = float3(0,0,1);   
             	sunDir = normalize(_MainLightPosition.xyz);   
                 // float nonLinearDepth =  SAMPLE_TEXTURE2D(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv.xy).r * length(IN.viewVector);
                 float nonLinearDepth =  SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, IN.uv.xy).r;
@@ -257,27 +298,38 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             	float3 rayDir = normalize(IN.viewVector);
 
             	// return float4(normalize(viewDir), 1);
-            	float2 hitSphere = raySphere(0, 3, origin, (rayDir));
+            	atmosphereScale = (1 + _AtmosphereHeight) * _PlanetSize;
+            	float2 hitSphere = raySphere(_PlanetLocation, atmosphereScale, origin, (rayDir));
             	// return sceneDepth;
-            	float t = min(sceneDepth, hitSphere.y * 2);
-            	float distTthroughAtmosphere =  1- (hitSphere.x /  t);
+            	float esc = escape(origin, rayDir, atmosphereScale);
+            	// return esc;
+            	float distToAtmosphere = hitSphere.x;
+            	float d = min(sceneDepth - distToAtmosphere, hitSphere.y);
+            	// float distTthroughAtmosphere =  saturate(1-(hitSphere.x /  d));
+            	// float distTthroughAtmosphere =  d / (_AtmosphereHeight * 2);
+            	float distTthroughAtmosphere =  min(hitSphere.y, sceneDepth - distToAtmosphere);
+            	// float distTthroughAtmosphere =  min(hitSphere.y, sceneDepth - distToAtmosphere);
+            	// distTthroughAtmosphere = distTthroughAtmosphere / (atmosphereScale * 2);
             	float4 col = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, IN.uv);
 
-            	// return distTthroughAtmosphere;
-            	// return col;
+            	// return d ;
+            	// return distTthroughAtmosphere / (atmosphereScale * 2) * float4(rayDir.rgb * 0.5 + 0.5, 0.5);
+            	// return col;ff
             	if(distTthroughAtmosphere > 0)
             	{
-            		float3 pointInAtmosphere = origin + rayDir * (hitSphere.x + 0.00001);  
-            		float light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - 0.00001);
+            		const float epsilon = 0.0001;
+            		float3 pointInAtmosphere = origin + rayDir * (distToAtmosphere + epsilon);  
+            		float light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - epsilon * 2);
             		// return float4(pointInAtmosphere, 1);
-            		return saturate(light);
+            		// return light;
+            		return col * (1- light) + light;
             		// return (1-light) + light;
-            		return saturate(1-light) + light;
+            		// return saturate(1-light) + light;
             	}
-            	return 0;
-				float esc = escape(origin, rayDir, planetSize);
+            	return col;
+				// float esc = escape(origin, rayDir, planetSize);
             	// return esc;
-				return (calcLightTest(origin, rayDir, esc));
+				// return (calcLightTest(origin, rayDir, esc));
             	return min(col, sceneDepth);
             }
             ENDHLSL

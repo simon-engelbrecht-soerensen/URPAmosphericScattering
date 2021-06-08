@@ -85,7 +85,7 @@ Material:
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DensityFalloff: 10
+    - _DensityFalloff: 24.08
     - _DepthDistance: 1
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
@@ -98,7 +98,7 @@ Material:
     - _OcclusionStrength: 1
     - _OpticalDepthPoints: 10
     - _Parallax: 0.005
-    - _PlanetSize: 10
+    - _PlanetSize: 9.83
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _ScatteringPoints: 27.9

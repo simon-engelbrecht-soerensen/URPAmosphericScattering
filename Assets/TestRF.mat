@@ -78,15 +78,15 @@ Material:
     m_Ints: []
     m_Floats:
     - _AlphaClip: 0
-    - _AtmosphereHeight: 1.05
+    - _AtmosphereHeight: 1.07
     - _Blend: 0
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DensityFalloff: 10
-    - _DepthDistance: 0.0006
+    - _DensityFalloff: 11.3
+    - _DepthDistance: 0.0001
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0

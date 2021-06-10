@@ -236,7 +236,15 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				return opticalDepth;
 			}
 
-
+            float G_SCATTERING = 10;
+			float ComputeScattering(float lightDotView)
+			{
+				float result = 1.0f - G_SCATTERING * G_SCATTERING;				
+				result /= (4.0f * PI * pow(1.0f + G_SCATTERING * G_SCATTERING - (2.0f * G_SCATTERING) *      lightDotView, 1.5f));
+				return result;
+				
+			}
+            
 			const float3 bR = float3(58, 135, 331); // Rayleigh scattering coefficient
 			// const float3 bR = float3(58e-7, 135e-7, 331e-7); // Rayleigh scattering coefficient
 			const float3 bMs = float3(2e-5, 2e-5, 2e-5); // Mie scattering coefficients
@@ -246,7 +254,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             float3 _betaR = float3(1.95e-2, 1.1e-1, 2.94e-1); 
 			float3 _betaM = float3(4e-2, 4e-2, 4e-2);
 
-			float3 calcLightTest(float3 rayOrigin, float3 rayDir, float length, float3 originalCol)
+			float3 calcLightTest(float3 rayOrigin, float3 rayDir, float length, float3 originalCol, float3 wPos, float dist)
             {
 
             	float rayLength = length;
@@ -330,10 +338,31 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				// (inScatteredLight * bR * .0597 +
 				// inScatteredLight * bMs * .0196 / pow(1.58 - 1.52 * mu, 1.5));
 				// inScatteredLight *= scatteringCoefficients  * stepSize;
-				float originalTayOpticalDepth = exp(-rayOpticalDepth);
+				float originalSunRayOpticalDepth = exp(-rayOpticalDepth);
 
-				float sunPow = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge * 0.5) * (originalTayOpticalDepth * .0597 +
-				originalTayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge, 1.5));
+				float sunPow = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge) * (originalSunRayOpticalDepth * .0597 +
+				originalSunRayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge, 1.5));
+				// return sunPow;
+
+				float distTravelled = 0;
+				float stepSize2 = 1;
+				while(distTravelled < 400 )
+                {
+                	// distTravelled += ;
+                    float3 rayPos = wPos + rayDir * distTravelled ;
+                	
+                    if(ShadowAtten(rayPos) < 0.1 &&  distTravelled < dist) 
+                    {
+                       // sunPow *= 0.1 * stepSize2;
+                    	sunPow -= ComputeScattering(dot(rayDir, sunDir)) * 0.01;
+                    	sunPow = saturate(sunPow);
+                    }
+				 	
+                    distTravelled += stepSize2;
+                    
+                }
+				
+				// sunPow *= dist;
 				// return sunPow;
 				inScatteredLight *=  (scatteringCoefficients + sunPow) * stepSize;
 				
@@ -459,7 +488,6 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
                     }
                     distTravelled += stepSize;
                     
-                    
                 }
             	
     			// return float4(col2.rgb, 1);
@@ -468,7 +496,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             	{
             		const float epsilon = 0.0001;
             		float3 pointInAtmosphere = wpos + rayDir * (distToAtmosphere + epsilon);  
-            		float3 light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - epsilon * 2, col.rgb);
+            		float3 light = calcLightTest(pointInAtmosphere, rayDir, distTthroughAtmosphere - epsilon * 2, col.rgb, wpos, dist2);
             		// return float4(pointInAtmosphere, 1);
             		return float4(light, 1);
             		// return col * (1- light) + light;

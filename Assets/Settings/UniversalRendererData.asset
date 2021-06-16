@@ -17,7 +17,7 @@ MonoBehaviour:
     IsEnabled: 1
     WhenToInsert: 550
     MaterialToBlit: {fileID: 2100000, guid: 85be4b2653820b249ab2578fcccb07dd, type: 2}
-    scatteringStrength: 1.32
+    scatteringStrength: 2
     waveLengths: {x: 700, y: 530, z: 460}
 --- !u!114 &11400000
 MonoBehaviour:
@@ -32,7 +32,6 @@ MonoBehaviour:
   m_Name: UniversalRendererData
   m_EditorClassIdentifier: 
   debugShaders:
-    NumberFont: {fileID: 2800000, guid: f06a37246bbff114da01277637ca397e, type: 3}
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
   m_RendererFeatures:
   - {fileID: -5741419600401234683}
@@ -50,6 +49,8 @@ MonoBehaviour:
     materialErrorPS: {fileID: 4800000, guid: 5fd9a8feb75a4b5894c241777f519d4e, type: 3}
     coreBlitPS: {fileID: 4800000, guid: 93446b5c5339d4f00b85c159e1159b7c, type: 3}
     coreBlitColorAndDepthPS: {fileID: 4800000, guid: d104b2fc1ca6445babb8e90b0758136b, type: 3}
+    cameraMotionVector: {fileID: 4800000, guid: c56b7e0d4c7cb484e959caeeedae9bbf, type: 3}
+    objectMotionVector: {fileID: 4800000, guid: 7b3ede40266cd49a395def176e1bc486, type: 3}
   m_OpaqueLayerMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -65,4 +66,7 @@ MonoBehaviour:
     zFailOperation: 0
   m_ShadowTransparentReceive: 1
   m_RenderingMode: 0
+  m_DepthPrimingMode: 0
   m_AccurateGbufferNormals: 0
+  m_ClusteredRendering: 0
+  m_TileSize: 32

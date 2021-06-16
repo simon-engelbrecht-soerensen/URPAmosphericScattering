@@ -85,8 +85,8 @@ Material:
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DensityFalloff: 11.3
-    - _DepthDistance: 0.0001
+    - _DensityFalloff: 11.8
+    - _DepthDistance: 5511
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -101,14 +101,16 @@ Material:
     - _PlanetSize: 6360000
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _ScatteringPoints: 5
+    - _ScatteringPoints: 10
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
+    - _SunLightScattering: 14.6
     - _Surface: 0
     - _WorkflowMode: 1
     - _ZWrite: 1
+    - scatteringtest: 10
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}

@@ -11,7 +11,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
     	_PlanetLocation("Planet Location", Vector) = (0,0,0, 0)
     	_AtmosphereHeight("Atmosphere Height", Range(0,10)) = 1
     	_DepthDistance("Depth Distance", float) = 100
-    	_SunLightScattering("Sun Light Scattering", float) = 10
+    	_SunLightScattering("Sun Light Scattering", Range(0,1)) = 0.5
     }
 
     SubShader
@@ -124,6 +124,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 			{
 			        return MainLightRealtimeShadow(TransformWorldToShadowCoord(worldPosition));
 			}
+
 
             half ShadowAtten2(float3 worldPosition)
 			{
@@ -243,7 +244,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 			{
 				float result = 1.0f - _SunLightScattering * _SunLightScattering;				
 				result /= 4.0f * PI * pow(1.0f + _SunLightScattering * _SunLightScattering - (2.0f * _SunLightScattering) * lightDotView, 1.5f);
-				// result /= 100.0f * PI * pow(1 + scatteringtest * scatteringtest - (2.0f * scatteringtest) * lightDotView, 1.5);
+				// result /= 100.0f * PI * pow(1 + _SunLightScattering * _SunLightScattering - (2.0f * _SunLightScattering) * lightDotView, 1.5);
 				return result; 				
 			}
             
@@ -348,34 +349,42 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				float originalSunRayOpticalDepth = exp(-rayOpticalDepth);
 				float originalColTransmittance = exp(-viewRayOpticalDepth);
 				// return originalColTransmittance;
-				float sunPow = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge) * (originalSunRayOpticalDepth * .0597 +
-				originalSunRayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge , 1.5)) ;
-				// return sunPow;
 				// float sunPow = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge) * (originalSunRayOpticalDepth * .0597 +
+				// originalSunRayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge , 1.5)) ;
+
+				float sunPow = 0;
+				// return sunPow;
+				// float sunPower = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge) * (originalSunRayOpticalDepth * .0597 +
 				// originalSunRayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge, 1.5)) ;
 				// sunPow *= saturate(originalColTransmittance);
 				// return sunPow;
 				// return length;
 				float distTravelled = 0;
 				
-				float stepSize2 = 1;
-				while(distTravelled < 1000 )
+				float stepSize2 = 0.5;
+				int steps = 750;
+				while(distTravelled < steps )
                 {
                 	// distTravelled += ;
                     float3 rayPos = wPos + rayDir * distTravelled ;
-                	
-                    if(ShadowAtten(rayPos) < 0.01 &&  distTravelled < dist) 
+                	// float4 worldInShadowCameraSpace = mul(float4(rayPos, 1.0f), g_ShadowViewProjectionMatrix);
+				// worldInShadowCameraSpace /= worldInShadowCameraSpace.w;
+                    // if(ShadowAtten(rayPos) < 0.01 &&  distTravelled < dist) 
+                    if(ShadowAtten(rayPos) > 0.01 &&  distTravelled < dist) 
                     {
+      //               	float sunPower = saturate(saturate(exp(sunDotSmall)) + sunDotlarge * sunDotlarge) * (originalSunRayOpticalDepth * .0597 +
+						// originalSunRayOpticalDepth * .0196 / pow(1.58 - 1.52 * sunDotlarge , 1.5)) ;
                        // sunPow *= 0.1 * stepSize2;
-                    	sunPow -= -ComputeScattering(dot(rayDir, sunDir));
-
+                    	// sunPow += sunPower / steps;
+                    	sunPow += (ComputeScattering(dot(rayDir, sunDir)));
+						// sunPow += sunPower / 1000;
                     	
 						//todo:
                     	//mutlply with 1-dot(up vector, sundir)
                     	//multoply with depth or viewrayopticaldepth? fade out same rate as atmosphere applies
                     	
                     	// sunPow /= 1000;
-                    	sunPow = saturate(sunPow);
+                    	// sunPow = saturate(sunPow);
                     	// 
                     	// sunPow += ComputeScattering(dot(rayDir, sunDir));
                     }
@@ -383,6 +392,9 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
                     distTravelled += stepSize2;
                     
                 }
+				sunPow/= steps;
+				// return sunPow;
+				// sunPow = saturate(sunPow);
 				// return sunPow;
 				// sunPow -= (1-viewRayOpticalDepth);
 				// return sunPow ;
@@ -424,22 +436,27 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				//             nonLinearDepth = 1 - nonLinearDepth;
 				// #endif
 				//             nonLinearDepth = 2 * nonLinearDepth - 1; //NOTE: Currently must massage depth before computing CS position.
-
+				// return nonLinearDepth*5;
 				float3 vpos = ComputeViewSpacePosition(IN.uv.zw, nonLinearDepth, unity_CameraInvProjection);
             	float3 wpos = mul(unity_CameraToWorld, float4(vpos, 1)).xyz;
             	// float3 wpos = IN.worldPos;
+            	 // float cameraDistance = cameraDepth / normalize(viewSpacePos.xyz).z;
+            	 // float cameraDepth = LinearEyeDepth(tex2D(_CameraDepthTexture, screenPos / _ScreenParams.xy));
+
             	float3 viewDir = wpos-_WorldSpaceCameraPos;
 				float distance = length(IN.viewVector);
             	// return distance;
             	float dist2 = LinearEyeDepth(nonLinearDepth, _ZBufferParams) * distance;
             	float dist3 = LinearEyeDepth(nonLinearDepth, _ZBufferParams);
+            	// return dist2 / 10;
             	// return (distance) / 10;
             	// return distance;
             	float sceneDepth = LinearEyeDepth(nonLinearDepth, _ZBufferParams) * distance / (_DepthDistance / (_PlanetSize));
+            	// float sceneDepth = LinearEyeDepth(nonLinearDepth, _ZBufferParams);// * distance / (_DepthDistance / (_PlanetSize));
             	// float sceneDepth = LinearEyeDepth(nonLinearDepth, _ZBufferParams) * distance / _DepthDistance;
             	// float sceneDepth = LinearEyeDepth(nonLinearDepth, _ZBufferParams) * distance / _DepthDistance;
 				// nonLinearDepth = saturate(nonLinearDepth);
-            	// return sceneDepth;
+            	// return sceneDepth*0.01;
                 float3 origin = _WorldSpaceCameraPos;
             	// float3 rayDir = (IN.viewVector);
             	float3 rayDir = normalize(IN.viewVector);

@@ -12,6 +12,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
     	_AtmosphereHeight("Atmosphere Height", Range(0,10)) = 1
     	_DepthDistance("Depth Distance", float) = 100
     	_SunLightScattering("Sun Light Scattering", Range(0,1)) = 0.5
+    	_VolumetricShadowPower("Shadow Power", float) = 1
     }
 
     SubShader
@@ -79,6 +80,7 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
             
 			float3 sunDirection;
             float _SunLightScattering;
+            float _VolumetricShadowPower;
             
             Varyings vert(Attributes IN)
             {
@@ -361,8 +363,8 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
 				// return length;
 				float distTravelled = 0;
 				
-				float stepSize2 = 0.5;
-				int steps = 750;
+				float stepSize2 = 1;
+				int steps = 1000;
 				while(distTravelled < steps )
                 {
                 	// distTravelled += ;
@@ -388,13 +390,18 @@ Shader "Universal Render Pipeline/Custom/AScattering2"
                     	// 
                     	// sunPow += ComputeScattering(dot(rayDir, sunDir));
                     }
-				 	
+					// sunPow += 0.1;
+					
+				 	if(ShadowAtten(rayPos) < 0.01 &&  distTravelled < dist)
+				 	{
+				 		sunPow -= (ComputeScattering(dot(rayDir, sunDir))) * _VolumetricShadowPower;
+				 	}
                     distTravelled += stepSize2;
                     
                 }
 				sunPow/= steps;
 				// return sunPow;
-				// sunPow = saturate(sunPow);
+				sunPow = clamp(sunPow, 0, 99);
 				// return sunPow;
 				// sunPow -= (1-viewRayOpticalDepth);
 				// return sunPow ;

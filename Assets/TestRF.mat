@@ -86,7 +86,7 @@ Material:
     - _Cull: 2
     - _Cutoff: 0.5
     - _DensityFalloff: 11.8
-    - _DepthDistance: 2318.8
+    - _DepthDistance: 2989.1
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -106,8 +106,9 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SunLightScattering: 0.741
+    - _SunLightScattering: 0.71
     - _Surface: 0
+    - _VolumetricShadowPower: 3.73
     - _WorkflowMode: 1
     - _ZWrite: 1
     - scatteringtest: 10

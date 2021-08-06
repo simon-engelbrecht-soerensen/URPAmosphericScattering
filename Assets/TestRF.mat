@@ -106,9 +106,9 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SunLightScattering: 0.71
+    - _SunLightScattering: 0.766
     - _Surface: 0
-    - _VolumetricShadowPower: 3.73
+    - _VolumetricShadowPower: 0
     - _WorkflowMode: 1
     - _ZWrite: 1
     - scatteringtest: 10
